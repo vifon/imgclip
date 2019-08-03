@@ -3,11 +3,9 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include <fstream>
 #include <string>
-#include <vector>
 
 
 constexpr size_t chunk_size = 256*1024;
