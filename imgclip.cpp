@@ -67,7 +67,7 @@ void send_utf8(Display *dpy, XSelectionRequestEvent *sev, Atom utf8, const char*
     XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
 }
 
-void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, const image_t image)
+void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, const image_t& image)
 {
     XSelectionEvent ssev;
 
