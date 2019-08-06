@@ -1,3 +1,7 @@
-CXXFLAGS=-DBASE_URL='"https://example.com/upload/"'
-LDFLAGS=-lX11
+CXXFLAGS += -DBASE_URL='"https://example.com/upload/"'
+LDFLAGS += -lX11
+
 all: imgclip
+
+clean:
+	rm -f imgclip
