@@ -24,7 +24,7 @@ struct Image {
         std::streampos size{file.tellg()};
         file.seekg(0, std::ios::beg);
 
-        buffer.reserve(size);
+        buffer.resize(size);
         file.read(buffer.data(), size);
 
         stream.rdbuf()->pubsetbuf(buffer.data(), size);
@@ -99,23 +99,35 @@ void send_utf8(Display *dpy, XSelectionRequestEvent *sev, Atom utf8, const char*
     XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
 }
 
-// TODO
-// void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, const image_t& image)
-// {
-//     XSelectionEvent ssev;
+void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, Image& image)
+{
+    XSelectionEvent ssev;
 
-//     XChangeProperty(dpy, sev->requestor, sev->property, png, 8, PropModeReplace,
-//                     (unsigned char *)image.chunk.data, image.size);
+    // Max request size in 4-byte units.  To use the reasonable
+    // quantities of data (see: ICCCM section 2.5) let's use only 25%
+    // of this value, so no further arithmetic operations are needed.
+    size_t chunk_size = XExtendedMaxRequestSize(dpy);
+    if (!chunk_size) {
+        chunk_size = XMaxRequestSize(dpy);
+    }
 
-//     ssev.type = SelectionNotify;
-//     ssev.requestor = sev->requestor;
-//     ssev.selection = sev->selection;
-//     ssev.target = sev->target;
-//     ssev.property = sev->property;
-//     ssev.time = sev->time;
+    std::vector<char> chunk;
+    chunk.resize(chunk_size);
+    image.stream.read(chunk.data(), chunk_size);
+    const size_t size = image.stream.gcount();
 
-//     XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
-// }
+    XChangeProperty(dpy, sev->requestor, sev->property, png, 8, PropModeReplace,
+                    (unsigned char *)chunk.data(), size);
+
+    ssev.type = SelectionNotify;
+    ssev.requestor = sev->requestor;
+    ssev.selection = sev->selection;
+    ssev.target = sev->target;
+    ssev.property = sev->property;
+    ssev.time = sev->time;
+
+    XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
+}
 
 int main(int argc, char *argv[])
 {
@@ -134,7 +146,7 @@ int main(int argc, char *argv[])
         image_path = argv[1];
     }
 
-    const Image image{image_path};
+    Image image{image_path};
 
     dpy = XOpenDisplay(NULL);
     if (!dpy)
@@ -179,9 +191,8 @@ int main(int argc, char *argv[])
                     send_no(dpy, sev);
                 } else if (sev->target == utf8) {
                     send_utf8(dpy, sev, utf8, image.url.c_str());
-                // } else if (sev->target == png) {
-                //     // TODO
-                //     send_png(dpy, sev, png, image);
+                } else if (sev->target == png) {
+                    send_png(dpy, sev, png, image);
                 } else if (sev->target == targets) {
                     Atom target_list[] = {targets, png, utf8};
                     send_targets(dpy, sev, sizeof(target_list) / sizeof(Atom), target_list);
