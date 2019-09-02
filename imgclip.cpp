@@ -137,16 +137,19 @@ void send_large_png(
 
         XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
 
-        XEvent ev;
-        for(;;) {
-            XNextEvent(dpy, &ev);
-            switch (ev.type) {
-            case PropertyNotify:
-                goto NEXT_CHUNK;
-            }
-        }
-    NEXT_CHUNK:
-        offset = offset + current_chunk_size;
+        image.offset += current_chunk_size;
+    } else {
+        // Finalize the INCR transfer.
+        XChangeProperty(dpy, sev->requestor, sev->property, png, 8, PropModeReplace, 0, 0);
+        ssev.type = SelectionNotify;
+        ssev.requestor = sev->requestor;
+        ssev.selection = sev->selection;
+        ssev.target = sev->target;
+        ssev.property = sev->property;
+        ssev.time = sev->time;
+        XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
+
+        image.offset = 0;
     }
 }
 
@@ -162,35 +165,30 @@ void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, Image& image)
     // Max request size in 4-byte units.  To use the reasonable
     // quantities of data (see: ICCCM section 2.5) let's use only 25%
     // of this value, so no further arithmetic operations are needed.
-    size_t chunk_size = XExtendedMaxRequestSize(dpy);
-    if (!chunk_size) {
-        chunk_size = XMaxRequestSize(dpy);
-    }
+    size_t chunk_size = max_chunk_size(dpy);
 
     if (image.size() < chunk_size) {
         send_small_png(dpy, sev, png, image);
     } else {
-        // Initiate the INCR transfer.
-        XChangeProperty(dpy, sev->requestor, sev->property, incr, 32, PropModeReplace, 0, 0);
-        ssev.type = SelectionNotify;
-        ssev.requestor = sev->requestor;
-        ssev.selection = sev->selection;
-        ssev.target = sev->target;
-        ssev.property = sev->property;
-        ssev.time = sev->time;
-        XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
+        send_no(dpy, sev);
 
-        send_large_png(dpy, sev, png, image, chunk_size);
+        // TODO: INCR transfers
 
-        // Finalize the INCR transfer.
-        XChangeProperty(dpy, sev->requestor, sev->property, png, 8, PropModeReplace, 0, 0);
-        ssev.type = SelectionNotify;
-        ssev.requestor = sev->requestor;
-        ssev.selection = sev->selection;
-        ssev.target = sev->target;
-        ssev.property = sev->property;
-        ssev.time = sev->time;
-        XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
+        // // Initiate the INCR transfer.
+
+        // XChangeProperty(dpy, sev->requestor, sev->property, incr, 32, PropModeReplace, 0, 0);
+        // XSelectInput(dpy, sev->requestor, PropertyChangeMask);
+
+        // ssev.type = SelectionNotify;
+        // ssev.requestor = sev->requestor;
+        // ssev.selection = sev->selection;
+        // ssev.target = sev->target;
+        // ssev.property = sev->property;
+        // ssev.time = sev->time;
+
+        // XSendEvent(dpy, sev->requestor, True, NoEventMask, (XEvent *)&ssev);
+
+        // send_large_png(dpy, sev, png, image, chunk_size);
     }
 }
 
@@ -236,6 +234,9 @@ int main(int argc, char *argv[])
     for (;;) {
         XNextEvent(dpy, &ev);
         switch (ev.type) {
+        case PropertyNotify:
+            send_large_png(dpy, sev, png, image, max_chunk_size(dpy));
+            break;
         case SelectionClear:
             return 0;
             break;
