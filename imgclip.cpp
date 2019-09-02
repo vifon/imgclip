@@ -174,32 +174,32 @@ int main(int argc, char *argv[])
         XNextEvent(dpy, &ev);
         switch (ev.type)
         {
-            case SelectionClear:
-                return 0;
-                break;
-            case SelectionRequest:
-                sev = &ev.xselectionrequest;
+        case SelectionClear:
+            return 0;
+            break;
+        case SelectionRequest:
+            sev = &ev.xselectionrequest;
 
-                auto an = XGetAtomName(dpy, sev->target);
-                fprintf(stderr, "Requested target: %s\n", an);
-                if (an) {
-                    XFree(an);
-                }
+            auto an = XGetAtomName(dpy, sev->target);
+            fprintf(stderr, "Requested target: %s\n", an);
+            if (an) {
+                XFree(an);
+            }
 
-                /* Property is set to None by "obsolete" clients. */
-                if (sev->property == None) {
-                    send_no(dpy, sev);
-                } else if (sev->target == utf8) {
-                    send_utf8(dpy, sev, utf8, image.url.c_str());
-                } else if (sev->target == png) {
-                    send_png(dpy, sev, png, image);
-                } else if (sev->target == targets) {
-                    Atom target_list[] = {targets, png, utf8};
-                    send_targets(dpy, sev, sizeof(target_list) / sizeof(Atom), target_list);
-                } else {
-                    send_no(dpy, sev);
-                }
-                break;
+            /* Property is set to None by "obsolete" clients. */
+            if (sev->property == None) {
+                send_no(dpy, sev);
+            } else if (sev->target == utf8) {
+                send_utf8(dpy, sev, utf8, image.url.c_str());
+            } else if (sev->target == png) {
+                send_png(dpy, sev, png, image);
+            } else if (sev->target == targets) {
+                Atom target_list[] = {targets, png, utf8};
+                send_targets(dpy, sev, sizeof(target_list) / sizeof(Atom), target_list);
+            } else {
+                send_no(dpy, sev);
+            }
+            break;
         }
     }
 }
