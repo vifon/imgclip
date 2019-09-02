@@ -149,8 +149,7 @@ int main(int argc, char *argv[])
     Image image{image_path};
 
     dpy = XOpenDisplay(NULL);
-    if (!dpy)
-    {
+    if (!dpy) {
         fprintf(stderr, "Could not open X display\n");
         return 1;
     }
@@ -169,11 +168,9 @@ int main(int argc, char *argv[])
     /* Claim ownership of the clipboard. */
     XSetSelectionOwner(dpy, sel, owner, CurrentTime);
 
-    for (;;)
-    {
+    for (;;) {
         XNextEvent(dpy, &ev);
-        switch (ev.type)
-        {
+        switch (ev.type) {
         case SelectionClear:
             return 0;
             break;
