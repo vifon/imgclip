@@ -171,9 +171,9 @@ void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, Image& image)
     }
 
     // Max request size in 4-byte units.  To use the reasonable
-    // quantities of data (see: ICCCM section 2.5) let's use only 25%
-    // of this value, so no further arithmetic operations are needed.
-    size_t chunk_size = max_chunk_size(dpy);
+    // quantities of data (see: ICCCM section 2.5) let's use 75% of
+    // this value, in bytes.
+    size_t chunk_size = max_chunk_size(dpy) * 3;
 
     if (image.size() < chunk_size) {
         send_small_png(dpy, sev, png, image);
