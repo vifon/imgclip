@@ -40,12 +40,20 @@ struct Image {
     const char* path;
     const std::string url;
     std::vector<char> buffer;
+    size_t offset = 0;
 
     size_t size() const {
         return buffer.size();
     }
 };
 
+size_t max_chunk_size(Display *dpy) {
+    size_t chunk_size = XExtendedMaxRequestSize(dpy);
+    if (!chunk_size) {
+        chunk_size = XMaxRequestSize(dpy);
+    }
+    return chunk_size;
+}
 
 void send_no(Display *dpy, XSelectionRequestEvent *sev)
 {
@@ -117,15 +125,15 @@ void send_large_png(
     Display *dpy, XSelectionRequestEvent *sev, Atom png, Image& image,
     const size_t chunk_size)
 {
+    fprintf(stderr, "Initiating INCR transfer\n");
     XSelectionEvent ssev;
 
-    size_t offset = 0;
-
-    while (offset < image.size()) {
-        const size_t remainder = image.size() - offset;
+    if (image.offset < image.size()) {
+        const size_t remainder = image.size() - image.offset;
         const size_t current_chunk_size = std::min(remainder, chunk_size);
+        fprintf(stderr, "INCR status: chunk_size=%d, offset=%d\n", (int)current_chunk_size, (int)image.offset);
         XChangeProperty(dpy, sev->requestor, sev->property, png, 8, PropModeReplace,
-                        (unsigned char *)(image.buffer.data() + offset),
+                        (unsigned char *)(image.buffer.data() + image.offset),
                         current_chunk_size);
 
         ssev.type = SelectionNotify;
