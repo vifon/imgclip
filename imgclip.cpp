@@ -3,8 +3,6 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include <fstream>
@@ -203,20 +201,6 @@ void send_png(Display *dpy, XSelectionRequestEvent *sev, Atom png, Image& image)
     }
 }
 
-void daemonize()
-{
-    if (pid_t child = fork()) {
-        _exit(0);
-    }
-    setsid();
-    if (pid_t daemon = fork()) {
-        _exit(0);
-    }
-    close(0);                   // stdin
-    close(1);                   // stdout
-    close(2);                   // stderr
-}
-
 int main(int argc, char *argv[])
 {
     Display *dpy;
@@ -242,7 +226,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    daemonize();
+    daemon(0,0);
 
     screen = DefaultScreen(dpy);
     root = RootWindow(dpy, screen);
