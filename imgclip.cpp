@@ -10,15 +10,11 @@
 #include <string>
 #include <vector>
 
-#ifndef BASE_URL
-#define BASE_URL "https://example.com/upload/"
-#endif
-
 
 struct Image {
-    Image(const char* image_path)
+    Image(const char* image_path, const char* base_url)
         : path(image_path)
-        , url(get_url())
+        , url(get_url(base_url))
     {
         std::ifstream file{image_path, std::ios::binary};
         file.seekg(0, std::ios::end);
@@ -29,12 +25,12 @@ struct Image {
         file.read(buffer.data(), size);
     }
 
-    std::string get_url() const
+    std::string get_url(const char* base_url) const
     {
         const size_t path_size = strlen(path);
         std::vector<char> path_buf;
         path_buf.assign(path, path + path_size + 1);
-        const std::string url = std::string(BASE_URL) + basename(path_buf.data());
+        const std::string url = std::string(base_url) + basename(path_buf.data());
         return url;
     }
 
@@ -211,14 +207,21 @@ int main(int argc, char *argv[])
     XSelectionRequestEvent *sev;
 
     const char* image_path;
-    if (argc != 2) {
-        fprintf(stderr, "Argument required\n");
+    const char* base_url;
+    if (argc != 3) {
+        fprintf(
+            stderr,
+            "Usage:\n"
+            "  %s <filename> <base_url>\n",
+            argv[0]
+        );
         return 2;
     } else {
         image_path = argv[1];
+        base_url = argv[2];
     }
 
-    Image image{image_path};
+    Image image{image_path, base_url};
 
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
